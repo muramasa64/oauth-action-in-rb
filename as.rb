@@ -1,6 +1,8 @@
 require 'sinatra'
 require 'sinatra/reloader'
 
+set :views, settings.root + '/views/as'
+
 Client = Struct.new(:client_id, :client_secret, :redirect_uris, :scope)
 AuthServer = Struct.new(:authorization_endpoint, :token_endpoint)
 
