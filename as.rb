@@ -46,6 +46,12 @@ class AuthorizationServer < Sinatra::Base
     SecureRandom.hex(8)
   end
 
+  def error_response(uri_str, error_msg)
+    uri = URI.parse(uri)
+    uri.query = "error=#{error_msg}"
+    uri
+  end
+
   # routing
   get '/' do
     erb :index, :locals => {:clients => settings.clients, :auth_server => settings.auth_server}
@@ -70,9 +76,7 @@ class AuthorizationServer < Sinatra::Base
         is_valid_scope = valid_scope(requested_scope, client_scope)
         unless is_valid_scope
           logger.info "Invalid scope"
-          uri = URI.parse(params['redirect_uri'])
-          uri.query = "error=invalid_scope"
-          redirect uri
+          redirect error_response(params['redirect_uri'], "invalid_scope")
         else
           request_id = generate_request_id
           settings.cache[request_id] = request.query_string
@@ -82,6 +86,20 @@ class AuthorizationServer < Sinatra::Base
     end
   end
 
+  get '/approve' do
+    redirect '/'
+  end
+
   post '/approve' do
+    request_id = params['request_id']
+    query = settings.cache.delete(request_id)
+
+    unless query
+      return erb :error, :locals => {:error => 'No matching AuthorizationServer request'}
+    end
+
+    unless params['approve']
+      redirect error_response(params['redirect_uri'], "access_denied")
+    end
   end
 end
