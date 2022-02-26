@@ -17,17 +17,17 @@ scope = nil
 
 # routing
 get '/' do
-    erb :index, :locals => {:access_token => access_token, :scope => scope}
+  erb :index, :locals => {:access_token => access_token, :scope => scope}
 end
 
 get '/authorize' do
-    # send the user to the authorization serer
+  # send the user to the authorization serer
 end
 
 get '/callback' do
-    # parse the response from the authorization server and get a token
+  # parse the response from the authorization server and get a token
 end
 
 get '/fetch_resource' do
-    # use the access token to call the resource server
+  # use the access token to call the resource server
 end
