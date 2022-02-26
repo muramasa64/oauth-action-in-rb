@@ -3,6 +3,7 @@ require 'sinatra/reloader'
 require 'sinatra/config_file'
 require 'uri'
 require 'logger'
+require 'concurrent'
 
 class AuthorizationServer < Sinatra::Base
     # config file
@@ -13,10 +14,9 @@ class AuthorizationServer < Sinatra::Base
     register Sinatra::Reloader
 
     # sinatra settings
-    set :views, settings.root + '/views/as'
-
-    # logger
     configure :production, :development do
+        set :views, settings.root + '/views/as'
+        set :cache, Concurrent::Hash.new(0)
         enable :logging
     end
     logger = Logger.new(STDOUT)
@@ -74,6 +74,7 @@ class AuthorizationServer < Sinatra::Base
                     redirect uri
                 else
                     request_id = generate_request_id
+                    settings.cache[request_id] = request.query_string
                     erb :approve, :locals => {:client => client, :scope => requested_scope, :request_id => request_id}
                 end
             end
