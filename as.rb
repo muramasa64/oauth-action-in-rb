@@ -4,6 +4,7 @@ require 'sinatra/config_file'
 require 'uri'
 require 'logger'
 require 'concurrent'
+require 'securerandom'
 
 class AuthorizationServer < Sinatra::Base
   # config file
@@ -42,7 +43,7 @@ class AuthorizationServer < Sinatra::Base
   end
 
   def generate_request_id
-    Random.urandom(8)
+    SecureRandom.hex(8)
   end
 
   # routing
@@ -79,5 +80,8 @@ class AuthorizationServer < Sinatra::Base
         end
       end
     end
+  end
+
+  post '/approve' do
   end
 end
