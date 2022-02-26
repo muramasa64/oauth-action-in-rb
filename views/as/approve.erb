@@ -37,20 +37,31 @@
     <div class="container">
 
       <div class="jumbotron">
-		  <h2>Client information:</h2>
-		  <% clients.each do |client| %>
-		  <ul>
-			  <li><b>client_id:</b> <code><%= client['client_id'] %></code></li>
-			  <li><b>client_secret:</b> <code><%= client['client_secret'] %></code></li>
-			  <li><b>scope:</b> <code><%= client['scope'] %></code></li>
-			  <li><b>redirect_uri:</b> <code><%= client['redirect_uris'] %></code></li>
-		   </ul>
-		   <% end %>
-		   <h2>Server information:</h2>
-		  <ul>
-			  <li><b>authorization_endpoint:</b> <code><%= auth_server['authorization_endpoint'] %></code></li>
-			  <li><b>token_endpoint:</b> <code><%= auth_server['token_endpoint'] %></code></li>
-		   </ul>
+		  <h2>Approve this client?</h2>
+		  <% if client['client_name'] %>
+		  <p><b>Name:</b> <code><%= client['client_name'] %></code></p>
+		  <% end %>
+		  <p><b>ID:</b> <code><%= client['client_id'] %></code></p>
+		  <% if client['client_uri'] %>
+		  <p><b>URI:</b> <code><%= client['client_uri'] %></code></p>
+		  <% end %>
+		  <% if client['logo_uri'] %>
+		  <p><b>logo:</b> <img src="<%= client['logo_uri'] %>" /></p>
+		  <% end %>
+
+		   <form class="form" action="/approve" method="POST">
+			   <input type="hidden" name="request_id" value="<%= request_id %>">
+			   <% if scope %>
+			   <p>The client is requesting access to the following:</p>
+			   <ul>
+			   <% scope.each do |s| %>
+			   	  <li><input type="checkbox" name="scope_<%= s %>" id="scope_<%= s %>" checked="checked"> <label for="scope_<%= s %>"><%= s %></label></li>
+			   <% end %>
+		       </ul>
+			   <% end %>
+			   <input type="submit" class="btn btn-success" name="approve" value="Approve">
+			   <input type="submit" class="btn btn-danger" name="deny" value="Deny">
+		   </form>
       </div>
 
     </div><!-- /.container -->
