@@ -22,6 +22,9 @@ class AuthorizationServer < Sinatra::Base
   end
   logger = Logger.new(STDOUT)
 
+  # Struct
+  AuthorizationRequest = Struct.new(:query, :scope, :user)
+
   # functions
   def get_client(client_id)
     settings.clients.find {|c| c['client_id'] == client_id}
@@ -44,6 +47,10 @@ class AuthorizationServer < Sinatra::Base
 
   def generate_request_id
     SecureRandom.hex(8)
+  end
+
+  def generate_code
+    SecureRandom.hex(10)
   end
 
   def error_response(uri_str, error_msg)
@@ -92,14 +99,37 @@ class AuthorizationServer < Sinatra::Base
 
   post '/approve' do
     request_id = params['request_id']
-    query = settings.cache.delete(request_id)
+    query = Rack::Utils.parse_query(settings.cache.delete(request_id))
+    logger.debug "request_id: #{request_id}, query: #{query}"
 
     unless query
-      return erb :error, :locals => {:error => 'No matching AuthorizationServer request'}
+      return erb :error, :locals => {:error => 'No matching authorization request'}
     end
 
     unless params['approve']
-      redirect error_response(params['redirect_uri'], "access_denied")
+      redirect error_response(query['redirect_uri'], "access_denied")
     end
+
+    case params['response_type']
+    when 'code'
+      code = generate_code
+      user = params['user']
+      request_scope = params.select {|k,v| k.start_with?('scope_')}.transform_keys{|k| k.sub(/^scope_/, '')}.keys
+      client = get_client(query['client_id'])
+      client_scope = parse_scope(client['scope'])
+
+      unless valid_scope(request_scope, client_scope)
+        redirect error_response(query['redirect_uri'], "invalid_scope")
+      end
+
+      settings.cache[code] = AuthorizationRequest.new(query, request_scope, user)
+      uri = URI.parse(query['redirect_uri'])
+      uri.query_string = "code=#{code}&state=#{query['state']}"
+      redirect uri
+    else
+      redirect error_response(query['redirect_uri'], "unsupported_response_type")
+    end
+
+    redirect '/'
   end
 end
