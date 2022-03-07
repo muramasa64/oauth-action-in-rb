@@ -5,6 +5,7 @@ require 'uri'
 require 'logger'
 require 'concurrent'
 require 'securerandom'
+require 'base64'
 
 class AuthorizationServer < Sinatra::Base
   # config file
@@ -17,7 +18,6 @@ class AuthorizationServer < Sinatra::Base
   # sinatra settings
   configure :production, :development do
     set :views, settings.root + '/views/as'
-    set :cache, Concurrent::Hash.new(0)
     enable :logging
   end
   logger = Logger.new(STDOUT)
@@ -51,6 +51,10 @@ class AuthorizationServer < Sinatra::Base
 
   def generate_code
     SecureRandom.hex(10)
+  end
+
+  def generate_access_token
+    SecureRandom.hex(16)
   end
 
   def error_response(uri_str, error_msg)
@@ -132,4 +136,55 @@ class AuthorizationServer < Sinatra::Base
 
     redirect '/'
   end
+
+  post '/token' do
+    headers = request.env.select {|k,v| k.start_with?('HTTP_')}.transform_keys{|k| k.sub(/^HTTP_/, '')}
+    auth = headers['HTTP_AUTHORIZATION']
+    if auth
+      client_credentials = Base64::urlsafe_decode64(auth.sub(/^basic /)).split(":")
+      client_id = client_credentials[0]
+      client_secret = client_credentials[1]
+    end
+
+    if params['client_id']
+      if client_id
+        logger.error "Client attempted to authenticate with multiple methods"
+        return [401, '{"error":"invalid_client"}']
+      end
+
+      client_id = params['client_id']
+      client_secret = params['client_secret']
+    end
+
+    client = get_client(client_id)
+    unless client
+      logger.info "Unknown client: #{client_id}"
+      return [401, '{"error":"invalid_client}']
+    end
+
+    if client['client_secret'] != client_secret
+      logger.info "Mismatched client secret, expected #{client['client_secret']}, got #{client_secret}"
+      return [401, '{"error":"invalid_client}']
+    end
+
+    if params['grant_type'] == 'authorization_code'
+      requested_code = params['code']
+      code = settings.cache.delete(requested_code)
+      unless code
+        logger.debug "Unknown code, #{requested_code}"
+        return [400, '{"error":"invalid_grant"}']
+      end
+
+      if code.query['client_id'] != client_id
+        access_token = 
+      end
+
+    else
+      logger.debug "Unknown grant type #{params['grant_type']}"
+      return [400, '{"error":"unsupported_grant_type"}']
+    end
+
+
+  end
+
 end
