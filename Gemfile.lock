@@ -2,9 +2,9 @@ GEM
   remote: https://rubygems.org/
   specs:
     cgi (0.3.1)
-    concurrent-ruby (1.1.9)
     erb (2.2.3)
       cgi
+    moneta (1.4.2)
     multi_json (1.15.0)
     mustermann (1.1.1)
       ruby2_keywords (~> 0.0.1)
@@ -30,8 +30,8 @@ PLATFORMS
   arm64-darwin-21
 
 DEPENDENCIES
-  concurrent-ruby
   erb
+  moneta
   sinatra
   sinatra-contrib
   webrick
