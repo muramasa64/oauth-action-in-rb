@@ -3,7 +3,7 @@ require 'sinatra/reloader'
 require 'sinatra/config_file'
 require 'uri'
 require 'logger'
-require 'concurrent'
+require 'moneta'
 require 'securerandom'
 
 class AuthorizationServer < Sinatra::Base
@@ -17,7 +17,7 @@ class AuthorizationServer < Sinatra::Base
   # sinatra settings
   configure :production, :development do
     set :views, settings.root + '/views/as'
-    set :cache, Concurrent::Hash.new(0)
+    set :cache, Moneta.new(:File, dir: 'tmp')
     enable :logging
   end
   logger = Logger.new(STDOUT)
@@ -54,7 +54,7 @@ class AuthorizationServer < Sinatra::Base
   end
 
   def error_response(uri_str, error_msg)
-    uri = URI.parse(uri)
+    uri = URI.parse(uri_str)
     uri.query = "error=#{error_msg}"
     uri
   end
@@ -100,7 +100,6 @@ class AuthorizationServer < Sinatra::Base
   post '/approve' do
     request_id = params['request_id']
     query = Rack::Utils.parse_query(settings.cache.delete(request_id))
-    logger.debug "request_id: #{request_id}, query: #{query}"
 
     unless query
       return erb :error, :locals => {:error => 'No matching authorization request'}
